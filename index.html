@@ -494,6 +494,10 @@ body{background:radial-gradient(1200px 700px at 85% 0%,#F3E4DE 0,transparent 60%
 .cn-note.on{opacity:1;transform:translate(-50%,0)}
 .tone{height:auto!important;padding-bottom:2px}
 #atelier .tone-ctrl{margin-bottom:14px!important}
+/* Holly 24.11: Kopfzeile dicht, über allen Ebenen; darunter weicher Auslauf */
+.top{z-index:60}
+.cn-top,.top.scrolled{background:var(--pearl);backdrop-filter:none;-webkit-backdrop-filter:none}
+.cn-top::after{content:"";position:absolute;left:0;right:0;top:100%;height:16px;background:linear-gradient(var(--pearl),rgba(247,244,241,0));pointer-events:none}
 /* Julia 22.11: beim Darüberfahren nicht gelb – Rosé-Kupfer wie die Seite */
 .set-live .seg button:not(.on):not(:disabled):hover{border-color:var(--gold-2);box-shadow:0 0 0 4px rgba(207,138,124,.22);background:#FFF6F3}
 </style>
