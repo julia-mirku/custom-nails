@@ -482,6 +482,18 @@ body{background:radial-gradient(1200px 700px at 85% 0%,#F3E4DE 0,transparent 60%
 .result{min-height:0}
 @media (max-height:820px) and (min-width:901px){#atelier .ctrl{margin-bottom:5px!important}#atelier .ctrl h3{margin-bottom:4px!important}#atelier .seg button:not(#segCol button){padding:6px 12px!important;font-size:13.5px!important}#atelier .result{padding-block:10px!important}#atelier{padding-top:calc(62px + 14px)!important}}
 .cn-foot{padding:22px 0 28px;font-size:13px;color:var(--ink-2);text-align:center}
+
+/* ===== Custom Nails 24.11: Steine, Hinweis, Hautton-Abstand ===== */
+.stones{position:absolute;inset:0;z-index:3;pointer-events:none}
+.stones img{position:absolute;width:2.7%;height:auto;transform:translate(-50%,-50%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));animation:stoneIn .25s ease-out}
+@keyframes stoneIn{from{transform:translate(-50%,-50%) scale(.4);opacity:0}}
+.frame.stone-mode{cursor:crosshair}
+.stone-hint{color:var(--gold)!important;text-transform:none;letter-spacing:0}
+.stage{position:relative}
+.cn-note{position:absolute;left:50%;top:12px;z-index:4;transform:translate(-50%,8px);margin:0;padding:7px 14px;border-radius:999px;background:rgba(38,33,31,.86);color:#fff;font-size:13px;line-height:1.3;white-space:nowrap;max-width:94%;overflow:hidden;text-overflow:ellipsis;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
+.cn-note.on{opacity:1;transform:translate(-50%,0)}
+.tone{height:auto!important;padding-bottom:2px}
+#atelier .tone-ctrl{margin-bottom:14px!important}
 </style>
 </head>
 <body>
@@ -514,7 +526,9 @@ body{background:radial-gradient(1200px 700px at 85% 0%,#F3E4DE 0,transparent 60%
         <div class="frame">
           <img class="ph on" id="phA" alt="Beispielbild Nagelset" src="img/set_02.webp">
           <img class="ph" id="phB" alt="" aria-hidden="true">
+          <div class="stones" id="stones" aria-hidden="true"></div>
         </div>
+        <p class="cn-note" id="cnNote" aria-live="polite"></p>
         <p class="stage-cap"><span id="stageKind">Ihr Set</span> <b id="stageCap">Medium · mit Farbe · Mandel</b></p>
       </div>
       <div class="reveal">
@@ -536,7 +550,7 @@ body{background:radial-gradient(1200px 700px at 85% 0%,#F3E4DE 0,transparent 60%
         <div class="ctrl fxctrl"><h3>Effekt <span class="fin-hint" data-hint="fx"></span></h3><div class="seg extras" id="segFx">
           <button data-v="none">Ohne</button><button data-v="chrome" data-p="15" data-t="10">Chrome-Pulver</button><button data-v="cat" data-p="15" data-t="15">Cat Eye</button><button data-v="glitzer" data-p="15" data-t="15">Glitzer</button>
         </div></div>
-        <div class="ctrl exctrl"><h3>Extras <span class="fin-hint" data-hint="ex"></span></h3><div class="exrow"><div class="seg extras" id="segEx">
+        <div class="ctrl exctrl"><h3>Extras <span class="fin-hint" data-hint="ex"></span> <span class="fin-hint stone-hint" id="stoneHint" hidden>– auf einen Nagel tippen, nochmals tippen nimmt den Stein weg</span></h3><div class="exrow"><div class="seg extras" id="segEx">
           <button data-v="steine" data-p="0.50">Steine</button>
           <button data-v="charms" data-p="5">Charms</button>
         </div></div></div>
@@ -2980,13 +2994,24 @@ HAS.fb=new Set();HAS.ft=new Set();HAS.dz=new Set();HAS.tn=new Set();
 FRAMES.forEach(f=>AXES.forEach(a=>{if(f[a]!=='*'&&!(a==='dz'&&f[a]==='none')&&!(a==='col'&&!COLFIN(f.fin))&&!((a==='fb'||a==='ft')&&f.fin!=='french'))HAS[a].add(f[a])}));
 /* Palettenfarben erst zeigen, wenn alle 8 Formen × (Einfarbig, Gold-Linien) × (ohne, Chrome, Cat Eye, Glitzer) als Foto da sind */
 $$('#segCol button[data-w]').forEach(b=>{const v=b.dataset.v,have=new Set(FRAMES.filter(f=>f.col===v&&f.tn==='T1').map(f=>[f.len,f.form,f.fin,f.fx].join()));
-  const full=['kurz','medium','lang','xl'].every(l=>['mandel','eckig'].every(fo=>['farbe','geo'].every(fi=>['none','chrome','cat','glitzer'].every(x=>have.has([l,fo,fi,x].join())))));if(!full)HAS.col.delete(v)});
+  const full=['kurz','medium','lang','xl'].every(l=>['mandel','eckig'].every(fo=>['farbe','geo'].every(fi=>['none','chrome','cat','glitzer'].every(x=>have.has([l,fo,fi,x].join())))));if(!FRAMES.some(f=>f.col===v))HAS.col.delete(v)});
+/* wenige Zusatzfarben: direkt in der Reihe zeigen, keine leere Palette */
+{const ex=$$('#segCol button:not(.pin)').filter(b=>HAS.col.has(b.dataset.v));if(ex.length<8)ex.forEach(b=>b.classList.add('pin'))}
 /* Bedienung */
 Object.entries(AX).forEach(([ax,id])=>$$('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{
-  if(b.disabled)return;st[ax]=st[ax]===b.dataset.v?null:b.dataset.v;
+  const v=b.dataset.v;let ch=null;
+  if(st[ax]!==v&&!ok(ax,v)){ch=relocate(ax,v);if(ch===false)return}else st[ax]=st[ax]===v?null:v;
   /* Abwählen darf nie zu einem Zustand ohne Foto führen: dann ruhende Wahl (z. B. Farbe hinter Milky) lösen */
   for(const o of ['col','fb','ft','fx','dz','tn','form']){if(frame()&&FRAMES.filter(f=>fits(f,st)).some(f=>f.len!=='natur'||st.len==='natur'))break;if(o!==ax)st[o]=o==='tn'?'T1':null}
-  update(true)})));
+  update(true);if(ch&&ch.length)note(ch)})));
+const PRI={len:50,form:40,col:30,fin:25,fx:20,fb:15,ft:15,tn:10,dz:5},AXN={len:'Länge',form:'Form',fin:'Design',col:'Farbe',fx:'Effekt',fb:'Basis',ft:'Spitze',tn:'Hautton',dz:'Design'};
+function relocate(ax,v){let best=null,bs=-1;
+  FRAMES.forEach(f=>{if(f[ax]!==v)return;if(f.len==='natur'&&!(ax==='len'&&v==='natur'))return;let sc=0;
+    AXES.forEach(a=>{if(a===ax||st[a]==null)return;if(f[a]==='*'||f[a]===st[a])sc+=PRI[a]||1});if(sc>bs){bs=sc;best=f}});
+  if(!best)return false;const ch=[];
+  AXES.forEach(a=>{if(a===ax||st[a]==null||best[a]==='*'||best[a]===st[a])return;ch.push(a);st[a]=best[a]});
+  st[ax]=v;return ch}
+function note(ch){const n=$('#cnNote');if(!n)return;n.textContent='Angepasst, damit das Bild passt: '+ch.map(a=>a==='tn'?'Hautton '+st.tn.slice(1):AXN[a]+' '+lab(a,st[a])).join(', ');n.classList.add('on');clearTimeout(note.t);note.t=setTimeout(()=>n.classList.remove('on'),4200)}
 /* Palette: öffnet an Stelle von Effekt/Extras, Auswahl schliesst sie */
 const palBtn=$('#palBtn'),colCtrl=$('#colCtrl'),atel=$('#atelier');
 function pal(open){colCtrl.classList.toggle('pal',open);atel.classList.toggle('pal-open',open);palBtn.setAttribute('aria-expanded',open);palBtn.textContent=open?'Schliessen ×':'+ Palette'}
@@ -2995,7 +3020,8 @@ $$('#segCol button').forEach(b=>b.addEventListener('click',()=>{if(colCtrl.class
 addEventListener('keydown',e=>{if(e.key==='Escape'&&colCtrl.classList.contains('pal'))pal(false)});
 $$('#segFin button,#segLen button').forEach(b=>b.addEventListener('click',()=>{if(colCtrl.classList.contains('pal'))pal(false)}));
 $$('#segEx button').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;const v=b.dataset.v,i=st.ex.indexOf(v);i<0?st.ex.push(v):st.ex.splice(i,1);update(true)}));
-function hint(ax){
+function hint(ax){const h=hint0(ax);return /^– (bei|nur|kein)/.test(h)?'':h}
+function hint0(ax){
   if(nat()&&ax!=='len'&&(!NATD||ax==='fin'||ax==='form'))return ax==='fin'?'– Overlay ohne Tips':'';
   if(ax==='col'&&colOff())return st.fin?'– nur bei Einfarbig oder Gold-Linien':'';
   if(ax==='ex')return '';
@@ -3017,7 +3043,7 @@ let colH=0;addEventListener('resize',()=>{colH=0});
 function update(user){
   Object.entries(AX).forEach(([ax,id])=>$$('#'+id+' button').forEach(b=>{
     b.hidden=!HAS[ax].has(b.dataset.v);b.classList.toggle('on',st[ax]===b.dataset.v);
-    b.disabled=st[ax]!==b.dataset.v&&!ok(ax,b.dataset.v)}));
+    b.disabled=false;b.classList.toggle('alt',st[ax]!==b.dataset.v&&!ok(ax,b.dataset.v))}));
   $$('#segCol .pgrp').forEach(g=>g.hidden=!g.querySelector('button:not([hidden])'));
   $('#palBtn').hidden=!$$('#segCol button:not(.pin)').some(b=>!b.hidden);
   $$('#segEx button').forEach(b=>{b.disabled=nat();b.classList.toggle('on',st.ex.includes(b.dataset.v))});
@@ -3064,8 +3090,18 @@ function update(user){
   const capParts=nat()?(NATD&&natDes()?['Kurz natur',desC,fxC].filter(Boolean):['Kurz natur','Overlay']):[st.len&&LEN[st.len],desC,st.form&&(st.form==='eckig'?'Eckig':'Mandel'),fxC].filter(Boolean);
   $('#stageKind').textContent=capParts.length?'Ihr Set':'Vorschau';
   $('#stageCap').textContent=capParts.length?capParts.join(' · '):(matchMedia('(max-width:900px)').matches?'Wählen Sie unten Ihr Set':'Wählen Sie rechts Ihr Set');
-  showPhoto();
+  showPhoto();drawStones();
+  {const h=$('#stoneHint');if(h)h.hidden=!(st.ex.includes('steine')&&!nat())}
 }
+/* ---------- Steine: Tippen auf einen Nagel setzt einen Stein, nochmals tippen nimmt ihn weg ---------- */
+const STN={},MASK={};const slotOf=f=>f?(f.len==='natur'?'natur':f.len+'-'+f.form):null;
+function maskOf(sl,cb){if(MASK[sl])return cb(MASK[sl]);const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=260;c.height=325;const x=c.getContext('2d');x.drawImage(im,0,0);MASK[sl]=x.getImageData(0,0,260,325).data;cb(MASK[sl])};im.src='img/m_'+sl+'.png'}
+function onNail(d,x,y){x=Math.round(x*260);y=Math.round(y*325);let best=null,bd=1e9;for(let dy=-6;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=260||Y>=325)continue;if(d[(Y*260+X)*4]>127){const q=dx*dx+dy*dy;if(q<bd){bd=q;best=[X/260,Y/325]}}}return best}
+function drawStones(){const box=$('#stones');if(!box)return;const on=st.ex.includes('steine')&&!nat(),sl=slotOf(curF);box.innerHTML='';$('#stage .frame').classList.toggle('stone-mode',on);if(!on||!STN[sl])return;
+  STN[sl].forEach(([x,y])=>{const i=document.createElement('img');i.src='img/stein.png';i.alt='';i.style.left=(x*100)+'%';i.style.top=(y*100)+'%';box.appendChild(i)})}
+$('#stage .frame').addEventListener('click',e=>{if(!st.ex.includes('steine')||nat()||!curF)return;const r=e.currentTarget.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=(e.clientY-r.top)/r.height,sl=slotOf(curF);
+  const L=STN[sl]||(STN[sl]=[]),k=L.findIndex(([a,b])=>Math.hypot((a-x)*r.width,(b-y)*r.height)<14);if(k>=0){L.splice(k,1);drawStones();return}
+  maskOf(sl,d=>{const p=onNail(d,x,y);if(!p)return;L.push(p);drawStones()})});
 /* Bildwechsel: neues Foto blendet über dem alten ein, das alte bleibt stehen – kein Aufhellen, kein Abdunkeln */
 const SRC=n=>n.includes('.')?'img/'+n:'img/set_'+n+'.webp';
 let pBase=$('#phA'),pTop=$('#phB'),curSrc=pBase.getAttribute('src'),tok=0,fadeT=0;
