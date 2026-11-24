@@ -494,6 +494,8 @@ body{background:radial-gradient(1200px 700px at 85% 0%,#F3E4DE 0,transparent 60%
 .cn-note.on{opacity:1;transform:translate(-50%,0)}
 .tone{height:auto!important;padding-bottom:2px}
 #atelier .tone-ctrl{margin-bottom:14px!important}
+/* Julia 22.11: beim Darüberfahren nicht gelb – Rosé-Kupfer wie die Seite */
+.set-live .seg button:not(.on):not(:disabled):hover{border-color:var(--gold-2);box-shadow:0 0 0 4px rgba(207,138,124,.22);background:#FFF6F3}
 </style>
 </head>
 <body>
@@ -3011,7 +3013,7 @@ function relocate(ax,v){let best=null,bs=-1;
   if(!best)return false;const ch=[];
   AXES.forEach(a=>{if(a===ax||st[a]==null||best[a]==='*'||best[a]===st[a])return;ch.push(a);st[a]=best[a]});
   st[ax]=v;return ch}
-function note(ch){const n=$('#cnNote');if(!n)return;n.textContent='Angepasst, damit das Bild passt: '+ch.map(a=>a==='tn'?'Hautton '+st.tn.slice(1):AXN[a]+' '+lab(a,st[a])).join(', ');n.classList.add('on');clearTimeout(note.t);note.t=setTimeout(()=>n.classList.remove('on'),4200)}
+function note(ch){const n=$('#cnNote');if(!n)return;n.textContent='Angepasst, damit das Bild passt: '+ch.map(a=>a==='tn'?'Hautton '+(TN.indexOf(st.tn)+1):AXN[a]+' '+lab(a,st[a])).join(', ');n.classList.add('on');clearTimeout(note.t);note.t=setTimeout(()=>n.classList.remove('on'),4200)}
 /* Palette: öffnet an Stelle von Effekt/Extras, Auswahl schliesst sie */
 const palBtn=$('#palBtn'),colCtrl=$('#colCtrl'),atel=$('#atelier');
 function pal(open){colCtrl.classList.toggle('pal',open);atel.classList.toggle('pal-open',open);palBtn.setAttribute('aria-expanded',open);palBtn.textContent=open?'Schliessen ×':'+ Palette'}
@@ -3032,12 +3034,13 @@ function hint0(ax){
   return '– '+(by.length?'bei '+by.join(' + ')+': ':'')+(on.length<offL.length?'nur '+on.join(', '):'kein '+offL.join(', '));
 }
 /* Hautton: nur echte Fotos; Stufen ohne Foto werden übersprungen, die Wahl bleibt sonst stehen */
-const TN=['T1','T2','T3','T4','T5'];
+const TN=['T0','T1','T2','T3','T4','T5','T6','T7'].filter(t=>t==='T1'||FRAMES.some(f=>f.tn===t));
+{const r=$('#toneR'),tk=$('.tone-ticks');r.max=TN.length;tk.innerHTML='<i></i>'.repeat(TN.length)}
 const okTone=t=>{if(isOff('tn'))return false;const s=Object.assign({},st,{tn:t});if(curF)AXES.forEach(a=>{if(a!=='tn'&&st[a]==null&&curF[a]!=='*')s[a]=curF[a]});return FRAMES.some(f=>fits(f,s)&&(f.len!=='natur'||s.len==='natur'))};
 const toneR=$('#toneR');let toneLast=1;
 toneR.addEventListener('input',()=>{let v=+toneR.value;const dir=Math.sign(v-toneLast)||1;
-  while(v>=1&&v<=5&&!okTone(TN[v-1]))v+=dir;
-  if(v<1||v>5)v=toneLast;toneR.value=v;if(v!==toneLast){toneLast=v;st.tn=TN[v-1];stick=true;update(true);stick=false}});
+  while(v>=1&&v<=TN.length&&!okTone(TN[v-1]))v+=dir;
+  if(v<1||v>TN.length)v=toneLast;toneR.value=v;if(v!==toneLast){toneLast=v;st.tn=TN[v-1];stick=true;update(true);stick=false}});
 const fmtP=n=>Number.isInteger(n)?String(n):n.toFixed(2);
 let colH=0;addEventListener('resize',()=>{colH=0});
 function update(user){
@@ -3051,7 +3054,7 @@ function update(user){
   if(!curF)curF=frame();
   { const hasT=FRAMES.some(f=>f.tn!=='T1');$('#toneCtrl').hidden=!hasT;
     const av=TN.map(t=>t===st.tn||okTone(t));$$('.tone-ticks i').forEach((i,k)=>i.classList.toggle('off',!av[k]));
-    const n=av.filter(Boolean).length;toneR.disabled=n<2;toneR.setAttribute('aria-valuetext','Hautton '+(TN.indexOf(st.tn)+1)+' von 5');
+    const n=av.filter(Boolean).length;toneR.disabled=n<2;toneR.setAttribute('aria-valuetext','Hautton '+(TN.indexOf(st.tn)+1)+' von '+TN.length);
     toneLast=TN.indexOf(st.tn)+1;toneR.value=toneLast;
     $('#toneHint').textContent=n<2?'– nur bei Nude ohne Effekt':''; }
   /* French: dieselbe Zeile zeigt Basis und Spitze statt der Farben – keine zusätzliche Höhe */
