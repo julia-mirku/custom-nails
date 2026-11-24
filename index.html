@@ -3094,6 +3094,8 @@ function update(user){
   $('#stageKind').textContent=capParts.length?'Ihr Set':'Vorschau';
   $('#stageCap').textContent=capParts.length?capParts.join(' · '):(matchMedia('(max-width:900px)').matches?'Wählen Sie unten Ihr Set':'Wählen Sie rechts Ihr Set');
   showPhoto();drawStones();
+  /* Hautton-Punkte erst NACH dem Bildwechsel prüfen (vorher galt noch das alte Foto → falsch grau) */
+  {const av=TN.map(t=>t===st.tn||okTone(t));$$('.tone-ticks i').forEach((i,k)=>i.classList.toggle('off',!av[k]));const n=av.filter(Boolean).length;toneR.disabled=n<2;$('#toneHint').textContent=n<2?'– nur bei Nude ohne Effekt':''}
   {const h=$('#stoneHint');if(h)h.hidden=!(st.ex.includes('steine')&&!nat())}
 }
 /* ---------- Steine: Tippen auf einen Nagel setzt einen Stein, nochmals tippen nimmt ihn weg ---------- */
